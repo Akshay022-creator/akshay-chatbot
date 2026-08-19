@@ -318,13 +318,23 @@ def index():
     return render_template("index.html", bot_name=BOT_NAME)
 
 
+def get_client_ip():
+    """Render (and most hosts) sit behind a proxy, so the real visitor IP
+    shows up in X-Forwarded-For, which can be a comma-separated chain of
+    proxies — the FIRST address in that list is the actual client."""
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.remote_addr
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
     if "sid" not in session:
         session["sid"] = str(uuid.uuid4())
     session_id = session["sid"]
 
-    ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+    ip_address = get_client_ip()
     user_agent = request.headers.get("User-Agent", "")
     upsert_visitor(session_id, ip_address, user_agent)
 
