@@ -1,7 +1,10 @@
 import os
 import uuid
+import sqlite3
+from datetime import datetime, timezone
+from functools import wraps
 
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from groq import Groq
 
 # ---------------------------------------------------------------------------
@@ -21,6 +24,11 @@ app = Flask(__name__)
 # Needed so Flask can set a signed session cookie (used to give each visitor
 # their own conversation history). Set FLASK_SECRET_KEY in production.
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
+
+# Password for the /admin page where you read chat logs. SET THIS on Render
+# (Environment Variables -> ADMIN_PASSWORD) — don't leave the default in
+# production.
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "changeme")
 
 BOT_NAME = "Akshay"
 
@@ -91,6 +99,64 @@ def get_model():
 
 
 # ---------------------------------------------------------------------------
+# Chat log database (SQLite)
+# ---------------------------------------------------------------------------
+# NOTE on hosting: Render's free plan uses ephemeral disk — this file
+# persists across restarts/spin-downs, but gets wiped on a fresh deploy
+# (e.g. pushing new code). Fine for casual logging; for guaranteed
+# permanence, switch to a hosted database (e.g. Render's free Postgres).
+DB_PATH = os.environ.get("DB_PATH", "chats.db")
+
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    conn = get_db()
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+def log_message(session_id, role, content):
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
+        (session_id, role, content, datetime.now(timezone.utc).isoformat()),
+    )
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+
+# ---------------------------------------------------------------------------
+# Admin auth helper
+# ---------------------------------------------------------------------------
+def admin_required(view_func):
+    @wraps(view_func)
+    def wrapped(*args, **kwargs):
+        if not session.get("is_admin"):
+            return redirect(url_for("admin_login"))
+        return view_func(*args, **kwargs)
+    return wrapped
+
+
+# ---------------------------------------------------------------------------
 # In-memory conversation store
 # ---------------------------------------------------------------------------
 # Keyed by a per-visitor session id (stored in a cookie). This is fine for a
@@ -129,6 +195,7 @@ def chat():
 
     history = get_history(session_id)
     history.append({"role": "user", "content": user_message})
+    log_message(session_id, "user", user_message)
 
     try:
         model = get_model()
@@ -138,6 +205,7 @@ def chat():
         )
         answer = response.choices[0].message.content
         history.append({"role": "assistant", "content": answer})
+        log_message(session_id, "assistant", answer)
         return jsonify({"reply": answer, "bot_name": BOT_NAME})
     except Exception as exc:
         # Don't keep a dangling user turn if the call failed.
@@ -152,6 +220,50 @@ def reset():
     if session_id and session_id in conversations:
         conversations.pop(session_id)
     return jsonify({"ok": True})
+
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    error = None
+    if request.method == "POST":
+        entered = request.form.get("password", "")
+        if entered == ADMIN_PASSWORD:
+            session["is_admin"] = True
+            return redirect(url_for("admin_dashboard"))
+        error = "Wrong password."
+    return render_template("admin_login.html", error=error)
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop("is_admin", None)
+    return redirect(url_for("admin_login"))
+
+
+@app.route("/admin")
+@admin_required
+def admin_dashboard():
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT session_id, role, content, created_at FROM messages ORDER BY session_id, id"
+    ).fetchall()
+    conn.close()
+
+    # Group messages by session_id, most recently active session first.
+    sessions_map = {}
+    for row in rows:
+        sid = row["session_id"]
+        sessions_map.setdefault(sid, []).append(row)
+
+    conversations_list = [
+        {"session_id": sid, "messages": msgs, "last_at": msgs[-1]["created_at"]}
+        for sid, msgs in sessions_map.items()
+    ]
+    conversations_list.sort(key=lambda c: c["last_at"], reverse=True)
+
+    return render_template(
+        "admin.html", conversations=conversations_list, bot_name=BOT_NAME
+    )
 
 
 if __name__ == "__main__":

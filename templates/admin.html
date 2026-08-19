@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Chat Logs</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117; --surface: #141a26; --surface-2: #1b2333; --border: #232b3d;
+    --text: #e8ecf1; --muted: #7c8797; --amber: #f2b134; --teal: #4fd6c4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Inter", sans-serif;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface-2);
+  }
+  header h1 {
+    font-family: "JetBrains Mono", monospace; font-size: 15px; margin: 0; color: var(--amber);
+  }
+  header a { color: var(--muted); font-size: 13px; text-decoration: none; }
+  header a:hover { color: var(--text); }
+
+  .wrap { max-width: 820px; margin: 0 auto; padding: 24px; }
+
+  .empty { color: var(--muted); font-family: "JetBrains Mono", monospace; font-size: 13.5px; }
+
+  .conversation {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: 18px; overflow: hidden;
+  }
+  .conv-head {
+    padding: 10px 16px; background: var(--surface-2); border-bottom: 1px solid var(--border);
+    font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted);
+    display: flex; justify-content: space-between;
+  }
+  .conv-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  .msg { max-width: 80%; padding: 8px 12px; border-radius: 8px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; }
+  .msg-user { align-self: flex-end; background: #1b2333; border: 1px solid var(--border); }
+  .msg-assistant { align-self: flex-start; background: var(--bg); border: 1px solid var(--border); }
+  .msg-role {
+    font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: var(--teal);
+    margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <h1>$ {{ bot_name|lower }} admin — chat logs</h1>
+    <a href="{{ url_for('admin_logout') }}">log out</a>
+  </header>
+
+  <div class="wrap">
+    {% if not conversations %}
+      <p class="empty"># no conversations yet — check back once people start chatting.</p>
+    {% endif %}
+
+    {% for conv in conversations %}
+      <div class="conversation">
+        <div class="conv-head">
+          <span>session: {{ conv.session_id[:8] }}…</span>
+          <span>last active: {{ conv.last_at }}</span>
+        </div>
+        <div class="conv-body">
+          {% for m in conv.messages %}
+            <div class="msg msg-{{ m.role }}">
+              <div class="msg-role">{{ m.role }}</div>
+              {{ m.content }}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+</body>
+</html>
