@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Akshay Kaushik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #141a26;
+    --surface-2: #1b2333;
+    --border: #232b3d;
+    --text: #e8ecf1;
+    --muted: #7c8797;
+    --amber: #f2b134;
+    --teal: #4fd6c4;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", system-ui, sans-serif;
+    line-height: 1.6;
+  }
+
+  .mono { font-family: "JetBrains Mono", monospace; }
+
+  a { color: var(--teal); }
+
+  /* ---------- Terminal hero ---------- */
+  .hero {
+    max-width: 720px;
+    margin: 70px auto 40px;
+    padding: 0 20px;
+  }
+
+  .terminal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.35);
+  }
+
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+
+  .terminal-title {
+    margin: 0 auto;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .terminal-body {
+    padding: 22px 20px 26px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14.5px;
+    min-height: 210px;
+  }
+
+  .prompt-line {
+    color: var(--muted);
+  }
+  .prompt-user { color: var(--teal); }
+  .prompt-path { color: var(--amber); }
+
+  #terminal-output {
+    white-space: pre-wrap;
+    color: var(--text);
+  }
+
+  .cursor {
+    display: inline-block;
+    width: 8px;
+    height: 16px;
+    background: var(--amber);
+    vertical-align: text-bottom;
+    animation: blink 1s step-start infinite;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  /* ---------- Sections ---------- */
+  section {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  .eyebrow {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--amber);
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    margin: 0 0 14px;
+  }
+
+  .muted { color: var(--muted); }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .tag {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12.5px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--teal);
+    background: var(--surface);
+  }
+
+  .cta {
+    margin-top: 26px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13.5px;
+    color: var(--bg);
+    background: var(--amber);
+    padding: 10px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  footer {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 30px 20px 90px;
+    color: var(--muted);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 480px) {
+    .hero { margin-top: 40px; }
+    .terminal-body { font-size: 13.5px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="hero">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+        <span class="terminal-title">akshaykaushik — zsh</span>
+      </div>
+      <div class="terminal-body">
+        <div class="prompt-line"><span class="prompt-user">akshaykaushik</span>@rnsit <span class="prompt-path">~</span> % <span id="terminal-cmd"></span></div>
+        <div id="terminal-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <div class="eyebrow">$ cat about.md</div>
+    <h2>About</h2>
+    <p class="muted">CSE student, building things with Python and poking at
+      cybersecurity + generative AI on the side. This site's chatbot down in
+      the corner is trained to actually sound like me — say hi to it, guru.</p>
+    <div class="tags">
+      <span class="tag">Python</span>
+      <span class="tag">Cybersecurity</span>
+      <span class="tag">Generative AI</span>
+      <span class="tag">RNSIT · CSE</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">$ ./chat --with akshay</div>
+    <h2>Talk to me</h2>
+    <p class="muted">The round button bottom-right isn't a support bot — it's
+      me, more or less. Ask about my projects, cybersecurity, Python, college
+      life, whatever.</p>
+    <a class="cta" href="#" onclick="document.getElementById('akshay-launcher').click(); return false;">▸ open chat</a>
+  </section>
+
+  <footer>
+    akshaykaushik · CSE · this page is a work in progress
+  </footer>
+
+  <script>
+    const cmd = "whoami";
+    const output = "Akshay Kaushik — CSE student · Python · Cybersecurity · Generative AI\nType a message in the chat to talk to me directly.";
+    const cmdEl = document.getElementById("terminal-cmd");
+    const outEl = document.getElementById("terminal-output");
+
+    function typeText(el, text, speed, done) {
+      let i = 0;
+      const interval = setInterval(() => {
+        el.textContent += text.charAt(i);
+        i++;
+        if (i >= text.length) {
+          clearInterval(interval);
+          if (done) done();
+        }
+      }, speed);
+    }
+
+    const cursorSpan = document.createElement("span");
+    cursorSpan.className = "cursor";
+    cmdEl.after(cursorSpan);
+
+    typeText(cmdEl, cmd, 70, () => {
+      setTimeout(() => {
+        cursorSpan.remove();
+        outEl.textContent = "";
+        typeText(outEl, "\n" + output, 12);
+      }, 350);
+    });
+  </script>
+
+  <!-- Akshay chat widget -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='akshay-widget.css') }}">
+  <script src="{{ url_for('static', filename='akshay-widget.js') }}" data-bot-name="{{ bot_name }}"></script>
+
+</body>
+</html>
