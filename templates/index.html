@@ -1,21 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Akshay Kaushik</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0d1117;
-    --surface: #141a26;
-    --surface-2: #1b2333;
-    --border: #232b3d;
-    --text: #e8ecf1;
-    --muted: #7c8797;
+    --bg: #f7f8fb;
+    --surface: #ffffff;
+    --surface-2: #f0f1f6;
+    --border: #e4e6ef;
+    --text: #171923;
+    --muted: #6b7280;
+    --accent: #6851ff;
+    --accent-ink: #ffffff;
+    --amber: #e79a1a;
+    --shadow: 0 20px 50px rgba(23, 25, 35, 0.08);
+    --shadow-lg: 0 30px 70px rgba(23, 25, 35, 0.12);
+  }
+
+  html[data-theme="dark"] {
+    --bg: #10121a;
+    --surface: #171a24;
+    --surface-2: #1e2230;
+    --border: #2a2f40;
+    --text: #eef0f5;
+    --muted: #8b93a7;
+    --accent: #8a7bff;
+    --accent-ink: #10121a;
     --amber: #f2b134;
-    --teal: #4fd6c4;
+    --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 30px 80px rgba(0, 0, 0, 0.5);
   }
 
   * { box-sizing: border-box; }
@@ -26,185 +43,325 @@
     color: var(--text);
     font-family: "Inter", system-ui, sans-serif;
     line-height: 1.6;
+    transition: background 0.25s ease, color 0.25s ease;
   }
 
+  .display { font-family: "Space Grotesk", sans-serif; }
   .mono { font-family: "JetBrains Mono", monospace; }
 
-  a { color: var(--teal); }
+  a { color: var(--accent); }
 
-  /* ---------- Terminal hero ---------- */
-  .hero {
-    max-width: 720px;
-    margin: 70px auto 40px;
-    padding: 0 20px;
+  /* ---------- Nav ---------- */
+  nav {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 22px 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
+
+  .brand {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+  }
+
+  .theme-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+  .theme-toggle:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .theme-toggle svg { width: 18px; height: 18px; }
+  .theme-toggle .sun { display: none; }
+  html[data-theme="dark"] .theme-toggle .moon { display: none; }
+  html[data-theme="dark"] .theme-toggle .sun { display: block; }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 64px 24px 30px;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 40px;
+    align-items: center;
+  }
+
+  .hero-copy { animation: fadeUp 0.7s ease both; }
+
+  .eyebrow-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #2fbf71;
+    box-shadow: 0 0 0 3px color-mix(in srgb, #2fbf71 25%, transparent);
+  }
+
+  h1 {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 2.6rem;
+    line-height: 1.12;
+    margin: 0 0 16px;
+    letter-spacing: -0.02em;
+  }
+
+  h1 .accent-word { color: var(--accent); }
+
+  .hero-sub {
+    color: var(--muted);
+    font-size: 1.05rem;
+    max-width: 480px;
+    margin: 0 0 26px;
+  }
+
+  .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .btn {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600;
+    font-size: 14.5px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+    box-shadow: var(--shadow);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ---------- Terminal card ---------- */
+  .hero-visual { animation: fadeUp 0.8s ease 0.1s both; }
 
   .terminal {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 14px;
     overflow: hidden;
-    box-shadow: 0 30px 60px rgba(0,0,0,0.35);
+    box-shadow: var(--shadow-lg);
   }
 
   .terminal-bar {
     display: flex;
     align-items: center;
     gap: 7px;
-    padding: 10px 14px;
+    padding: 11px 14px;
     background: var(--surface-2);
     border-bottom: 1px solid var(--border);
   }
 
-  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
   .dot-red { background: #ff5f57; }
   .dot-yellow { background: #febc2e; }
   .dot-green { background: #28c840; }
 
-  .terminal-title {
-    margin: 0 auto;
-    color: var(--muted);
-    font-size: 12px;
-  }
+  .terminal-title { margin: 0 auto; color: var(--muted); font-size: 11.5px; font-family: "JetBrains Mono", monospace; }
 
   .terminal-body {
     padding: 22px 20px 26px;
     font-family: "JetBrains Mono", monospace;
-    font-size: 14.5px;
-    min-height: 210px;
+    font-size: 13.5px;
+    min-height: 190px;
   }
 
-  .prompt-line {
-    color: var(--muted);
-  }
-  .prompt-user { color: var(--teal); }
+  .prompt-line { color: var(--muted); }
+  .prompt-user { color: var(--accent); }
   .prompt-path { color: var(--amber); }
 
-  #terminal-output {
-    white-space: pre-wrap;
-    color: var(--text);
-  }
+  #terminal-output { white-space: pre-wrap; color: var(--text); }
 
   .cursor {
-    display: inline-block;
-    width: 8px;
-    height: 16px;
-    background: var(--amber);
-    vertical-align: text-bottom;
-    animation: blink 1s step-start infinite;
+    display: inline-block; width: 7px; height: 15px; background: var(--amber);
+    vertical-align: text-bottom; animation: blink 1s step-start infinite;
   }
-
-  @keyframes blink {
-    50% { opacity: 0; }
-  }
+  @keyframes blink { 50% { opacity: 0; } }
 
   /* ---------- Sections ---------- */
   section {
-    max-width: 720px;
+    max-width: 980px;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: 46px 24px;
   }
+
+  .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .reveal.in-view { opacity: 1; transform: translateY(0); }
 
   .eyebrow {
     font-family: "JetBrains Mono", monospace;
     color: var(--amber);
-    font-size: 12.5px;
+    font-size: 12px;
     letter-spacing: 0.06em;
     margin-bottom: 8px;
   }
 
   h2 {
+    font-family: "Space Grotesk", sans-serif;
     font-size: 1.5rem;
     margin: 0 0 14px;
   }
 
   .muted { color: var(--muted); }
 
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 16px;
+  .cards-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
   }
 
-  .tag {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 12.5px;
-    padding: 6px 12px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    color: var(--teal);
+  .skill-card {
     background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   }
-
-  .cta {
-    margin-top: 26px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+  .skill-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  }
+  .skill-card .label {
     font-family: "JetBrains Mono", monospace;
-    font-size: 13.5px;
-    color: var(--bg);
-    background: var(--amber);
-    padding: 10px 16px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 700;
+    font-size: 12px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .skill-card .name { font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 14.5px; }
+
+  .cta-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow);
   }
 
   footer {
-    max-width: 720px;
+    max-width: 980px;
     margin: 0 auto;
-    padding: 30px 20px 90px;
+    padding: 30px 24px 100px;
     color: var(--muted);
     font-size: 13px;
     border-top: 1px solid var(--border);
   }
 
-  @media (max-width: 480px) {
-    .hero { margin-top: 40px; }
-    .terminal-body { font-size: 13.5px; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; padding-top: 44px; }
+    h1 { font-size: 2rem; }
+    .cta-panel { flex-direction: column; align-items: flex-start; }
   }
 </style>
 </head>
 <body>
 
+  <nav>
+    <div class="brand display" style="display:flex;align-items:center;gap:10px;">
+      <img src="{{ url_for('static', filename='avatar.svg') }}" alt="Akshay" style="width:34px;height:34px;border-radius:50%;">
+      Akshay Kaushik
+    </div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+    </button>
+  </nav>
+
   <div class="hero">
-    <div class="terminal">
-      <div class="terminal-bar">
-        <span class="dot dot-red"></span>
-        <span class="dot dot-yellow"></span>
-        <span class="dot dot-green"></span>
-        <span class="terminal-title">akshaykaushik — zsh</span>
+    <div class="hero-copy">
+      <img src="{{ url_for('static', filename='avatar.svg') }}" alt="Akshay Kaushik" style="width:72px;height:72px;border-radius:50%;box-shadow:var(--shadow);margin-bottom:20px;display:block;">
+      <span class="eyebrow-pill"><span class="status-dot"></span>Available to chat right now</span>
+      <h1>Hey, I'm Akshay — <span class="accent-word">CSE student</span>, building with Python & AI.</h1>
+      <p class="hero-sub">I'm into cybersecurity, Python, and generative AI. This site's chatbot down in the corner is trained to actually sound like me — not a support-desk clone. Say hi, guru.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#" id="open-chat-btn">Chat with me</a>
+        <a class="btn btn-ghost" href="#about">About me</a>
       </div>
-      <div class="terminal-body">
-        <div class="prompt-line"><span class="prompt-user">akshaykaushik</span>@rnsit <span class="prompt-path">~</span> % <span id="terminal-cmd"></span></div>
-        <div id="terminal-output"></div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+          <span class="terminal-title">akshaykaushik — zsh</span>
+        </div>
+        <div class="terminal-body">
+          <div class="prompt-line"><span class="prompt-user">akshaykaushik</span>@rnsit <span class="prompt-path">~</span> % <span id="terminal-cmd"></span></div>
+          <div id="terminal-output"></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <section>
-    <div class="eyebrow">$ cat about.md</div>
-    <h2>About</h2>
-    <p class="muted">CSE student, building things with Python and poking at
-      cybersecurity + generative AI on the side. This site's chatbot down in
-      the corner is trained to actually sound like me — say hi to it, guru.</p>
-    <div class="tags">
-      <span class="tag">Python</span>
-      <span class="tag">Cybersecurity</span>
-      <span class="tag">Generative AI</span>
-      <span class="tag">RNSIT · CSE</span>
+  <section id="about" class="reveal">
+    <div class="eyebrow">ABOUT</div>
+    <h2 class="display">What I'm into</h2>
+    <p class="muted">CSE student, building things with Python and poking at cybersecurity and generative AI on the side. Always learning, always shipping something small.</p>
+    <div class="cards-row">
+      <div class="skill-card"><div class="label">01</div><div class="name">Python</div></div>
+      <div class="skill-card"><div class="label">02</div><div class="name">Cybersecurity</div></div>
+      <div class="skill-card"><div class="label">03</div><div class="name">Generative AI</div></div>
+      <div class="skill-card"><div class="label">04</div><div class="name">RNSIT · CSE</div></div>
     </div>
   </section>
 
-  <section>
-    <div class="eyebrow">$ ./chat --with akshay</div>
-    <h2>Talk to me</h2>
-    <p class="muted">The round button bottom-right isn't a support bot — it's
-      me, more or less. Ask about my projects, cybersecurity, Python, college
-      life, whatever.</p>
-    <a class="cta" href="#" onclick="document.getElementById('akshay-launcher').click(); return false;">▸ open chat</a>
+  <section class="reveal">
+    <div class="cta-panel">
+      <div>
+        <div class="eyebrow">TALK TO ME</div>
+        <h2 class="display" style="margin-bottom:6px;">Not a bot. Well — kind of.</h2>
+        <p class="muted" style="margin:0;max-width:440px;">Ask about my projects, cybersecurity, Python, college life, whatever's on your mind.</p>
+      </div>
+      <a class="btn btn-primary" href="#" id="open-chat-btn-2">Open chat →</a>
+    </div>
   </section>
 
   <footer>
@@ -212,6 +369,20 @@
   </footer>
 
   <script>
+    // ---- Theme toggle ----
+    const root = document.documentElement;
+    const toggleBtn = document.getElementById("theme-toggle");
+    const saved = localStorage.getItem("akshay-theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    root.setAttribute("data-theme", saved || (prefersDark ? "dark" : "light"));
+
+    toggleBtn.addEventListener("click", () => {
+      const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      localStorage.setItem("akshay-theme", next);
+    });
+
+    // ---- Terminal typing effect ----
     const cmd = "whoami";
     const output = "Akshay Kaushik — CSE student · Python · Cybersecurity · Generative AI\nType a message in the chat to talk to me directly.";
     const cmdEl = document.getElementById("terminal-cmd");
@@ -222,10 +393,7 @@
       const interval = setInterval(() => {
         el.textContent += text.charAt(i);
         i++;
-        if (i >= text.length) {
-          clearInterval(interval);
-          if (done) done();
-        }
+        if (i >= text.length) { clearInterval(interval); if (done) done(); }
       }, speed);
     }
 
@@ -240,6 +408,24 @@
         typeText(outEl, "\n" + output, 12);
       }, 350);
     });
+
+    // ---- Scroll reveal ----
+    const revealEls = document.querySelectorAll(".reveal");
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add("in-view");
+      });
+    }, { threshold: 0.15 });
+    revealEls.forEach((el) => observer.observe(el));
+
+    // ---- Open chat buttons ----
+    function openChat(e) {
+      e.preventDefault();
+      const launcher = document.getElementById("akshay-launcher");
+      if (launcher) launcher.click();
+    }
+    document.getElementById("open-chat-btn").addEventListener("click", openChat);
+    document.getElementById("open-chat-btn-2").addEventListener("click", openChat);
   </script>
 
   <!-- Akshay chat widget -->

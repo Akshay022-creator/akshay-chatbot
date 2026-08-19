@@ -26,7 +26,7 @@
     root.innerHTML = `
       <div class="akshay-window" id="akshay-window">
         <div class="akshay-header">
-          <div class="akshay-avatar">${initials(BOT_NAME)}</div>
+          <div class="akshay-avatar"><img src="/static/avatar.svg" alt="${BOT_NAME}" style="width:100%;height:100%;border-radius:6px;"></div>
           <div class="akshay-header-text">
             <div class="akshay-header-name">${BOT_NAME}</div>
             <div class="akshay-header-status"><span class="akshay-status-dot"></span>Online</div>
