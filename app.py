@@ -99,7 +99,7 @@ def get_model():
 
 
 # ---------------------------------------------------------------------------
-# Chat log database (SQLite)
+# Database (SQLite)
 # ---------------------------------------------------------------------------
 # NOTE on hosting: Render's free plan uses ephemeral disk — this file
 # persists across restarts/spin-downs, but gets wiped on a fresh deploy
@@ -118,8 +118,34 @@ def init_db():
     conn = get_db()
     conn.execute(
         """
+        CREATE TABLE IF NOT EXISTS visitors (
+            session_id TEXT PRIMARY KEY,
+            ip_address TEXT,
+            user_agent TEXT,
+            device TEXT,
+            browser TEXT,
+            os TEXT,
+            first_seen TEXT NOT NULL,
+            last_seen TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS threads (
+            thread_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            last_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            thread_id TEXT NOT NULL,
             session_id TEXT NOT NULL,
             role TEXT NOT NULL,
             content TEXT NOT NULL,
@@ -131,11 +157,111 @@ def init_db():
     conn.close()
 
 
-def log_message(session_id, role, content):
+def parse_user_agent(ua):
+    """Very small, dependency-free device/browser/OS guesser from the
+    User-Agent header. Good enough for a personal dashboard — not as
+    precise as a real parsing library, but needs zero extra installs."""
+    ua_l = (ua or "").lower()
+
+    if "iphone" in ua_l:
+        device, os_name = "Mobile", "iOS (iPhone)"
+    elif "ipad" in ua_l:
+        device, os_name = "Tablet", "iOS (iPad)"
+    elif "android" in ua_l:
+        device = "Tablet" if "mobile" not in ua_l else "Mobile"
+        os_name = "Android"
+    elif "windows" in ua_l:
+        device, os_name = "Desktop", "Windows"
+    elif "mac os" in ua_l or "macintosh" in ua_l:
+        device, os_name = "Desktop", "macOS"
+    elif "linux" in ua_l:
+        device, os_name = "Desktop", "Linux"
+    else:
+        device, os_name = "Unknown", "Unknown"
+
+    if "edg/" in ua_l:
+        browser = "Edge"
+    elif "chrome/" in ua_l and "chromium" not in ua_l:
+        browser = "Chrome"
+    elif "crios" in ua_l:
+        browser = "Chrome (iOS)"
+    elif "fxios" in ua_l:
+        browser = "Firefox (iOS)"
+    elif "firefox/" in ua_l:
+        browser = "Firefox"
+    elif "safari/" in ua_l and "chrome/" not in ua_l:
+        browser = "Safari"
+    else:
+        browser = "Unknown"
+
+    return device, browser, os_name
+
+
+def upsert_visitor(session_id, ip_address, user_agent):
+    device, browser, os_name = parse_user_agent(user_agent)
+    now = datetime.now(timezone.utc).isoformat()
+    conn = get_db()
+    existing = conn.execute(
+        "SELECT session_id FROM visitors WHERE session_id = ?", (session_id,)
+    ).fetchone()
+    if existing:
+        conn.execute(
+            "UPDATE visitors SET last_seen = ?, ip_address = ? WHERE session_id = ?",
+            (now, ip_address, session_id),
+        )
+    else:
+        conn.execute(
+            """INSERT INTO visitors
+               (session_id, ip_address, user_agent, device, browser, os, first_seen, last_seen)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (session_id, ip_address, user_agent, device, browser, os_name, now, now),
+        )
+    conn.commit()
+    conn.close()
+
+
+def make_title(first_message):
+    title = first_message.strip().replace("\n", " ")
+    return (title[:42] + "…") if len(title) > 42 else (title or "New chat")
+
+
+def create_thread(session_id, first_message):
+    thread_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
     conn = get_db()
     conn.execute(
-        "INSERT INTO messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-        (session_id, role, content, datetime.now(timezone.utc).isoformat()),
+        "INSERT INTO threads (thread_id, session_id, title, created_at, last_at) VALUES (?, ?, ?, ?, ?)",
+        (thread_id, session_id, make_title(first_message), now, now),
+    )
+    conn.commit()
+    conn.close()
+    return thread_id
+
+
+def thread_belongs_to(thread_id, session_id):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT session_id FROM threads WHERE thread_id = ?", (thread_id,)
+    ).fetchone()
+    conn.close()
+    return row is not None and row["session_id"] == session_id
+
+
+def touch_thread(thread_id):
+    conn = get_db()
+    conn.execute(
+        "UPDATE threads SET last_at = ? WHERE thread_id = ?",
+        (datetime.now(timezone.utc).isoformat(), thread_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def log_message(thread_id, session_id, role, content):
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO messages (thread_id, session_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)",
+        (thread_id, session_id, role, content, datetime.now(timezone.utc).isoformat()),
     )
     conn.commit()
     conn.close()
@@ -157,18 +283,29 @@ def admin_required(view_func):
 
 
 # ---------------------------------------------------------------------------
-# In-memory conversation store
+# In-memory conversation store (keyed by thread_id, not session_id — a
+# visitor can have several threads). Fine for a single-process dev/demo
+# server; swap for Redis/DB if you ever run multiple workers.
 # ---------------------------------------------------------------------------
-# Keyed by a per-visitor session id (stored in a cookie). This is fine for a
-# single-process dev/demo server. For production with multiple workers or
-# restarts, swap this dict for Redis, a database, or similar.
 conversations = {}
 
 
-def get_history(session_id):
-    if session_id not in conversations:
-        conversations[session_id] = [{"role": "system", "content": SYSTEM_PROMPT}]
-    return conversations[session_id]
+def get_history(thread_id):
+    if thread_id not in conversations:
+        # Rebuild from the database if this thread existed before a
+        # server restart (e.g. Render spinning back up after inactivity).
+        conn = get_db()
+        rows = conn.execute(
+            "SELECT role, content FROM messages WHERE thread_id = ? ORDER BY id",
+            (thread_id,),
+        ).fetchall()
+        conn.close()
+
+        history = [{"role": "system", "content": SYSTEM_PROMPT}]
+        history.extend({"role": r["role"], "content": r["content"]} for r in rows)
+        conversations[thread_id] = history
+
+    return conversations[thread_id]
 
 
 # ---------------------------------------------------------------------------
@@ -187,15 +324,25 @@ def chat():
         session["sid"] = str(uuid.uuid4())
     session_id = session["sid"]
 
+    ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+    user_agent = request.headers.get("User-Agent", "")
+    upsert_visitor(session_id, ip_address, user_agent)
+
     data = request.get_json(force=True, silent=True) or {}
     user_message = (data.get("message") or "").strip()
+    thread_id = data.get("thread_id")
 
     if not user_message:
         return jsonify({"error": "Message is empty."}), 400
 
-    history = get_history(session_id)
+    # Create a new thread if none was given, or if the given one isn't
+    # actually owned by this visitor.
+    if not thread_id or not thread_belongs_to(thread_id, session_id):
+        thread_id = create_thread(session_id, user_message)
+
+    history = get_history(thread_id)
     history.append({"role": "user", "content": user_message})
-    log_message(session_id, "user", user_message)
+    log_message(thread_id, session_id, "user", user_message)
 
     try:
         model = get_model()
@@ -205,21 +352,52 @@ def chat():
         )
         answer = response.choices[0].message.content
         history.append({"role": "assistant", "content": answer})
-        log_message(session_id, "assistant", answer)
-        return jsonify({"reply": answer, "bot_name": BOT_NAME})
+        log_message(thread_id, session_id, "assistant", answer)
+        touch_thread(thread_id)
+        return jsonify({"reply": answer, "bot_name": BOT_NAME, "thread_id": thread_id})
     except Exception as exc:
         # Don't keep a dangling user turn if the call failed.
         history.pop()
         return jsonify({"error": str(exc)}), 500
 
 
-@app.route("/reset", methods=["POST"])
-def reset():
-    """Clear the current visitor's conversation history."""
+@app.route("/threads", methods=["GET"])
+def list_threads():
+    """All past conversation threads for this visitor's browser, newest
+    first — powers the 'previous chats' list in the widget."""
     session_id = session.get("sid")
-    if session_id and session_id in conversations:
-        conversations.pop(session_id)
-    return jsonify({"ok": True})
+    if not session_id:
+        return jsonify({"threads": []})
+
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT thread_id, title, last_at FROM threads WHERE session_id = ? ORDER BY last_at DESC",
+        (session_id,),
+    ).fetchall()
+    conn.close()
+
+    return jsonify({
+        "threads": [
+            {"thread_id": r["thread_id"], "title": r["title"], "last_at": r["last_at"]}
+            for r in rows
+        ]
+    })
+
+
+@app.route("/threads/<thread_id>/messages", methods=["GET"])
+def thread_messages(thread_id):
+    session_id = session.get("sid")
+    if not session_id or not thread_belongs_to(thread_id, session_id):
+        return jsonify({"error": "Not found"}), 404
+
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT role, content FROM messages WHERE thread_id = ? ORDER BY id",
+        (thread_id,),
+    ).fetchall()
+    conn.close()
+
+    return jsonify({"messages": [{"role": r["role"], "content": r["content"]} for r in rows]})
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
@@ -244,25 +422,39 @@ def admin_logout():
 @admin_required
 def admin_dashboard():
     conn = get_db()
-    rows = conn.execute(
-        "SELECT session_id, role, content, created_at FROM messages ORDER BY session_id, id"
-    ).fetchall()
+    thread_rows = conn.execute("SELECT * FROM threads ORDER BY last_at DESC").fetchall()
+    message_rows = conn.execute("SELECT * FROM messages ORDER BY thread_id, id").fetchall()
+    visitor_rows = conn.execute("SELECT * FROM visitors").fetchall()
     conn.close()
 
-    # Group messages by session_id, most recently active session first.
-    sessions_map = {}
-    for row in rows:
-        sid = row["session_id"]
-        sessions_map.setdefault(sid, []).append(row)
+    visitors_by_session = {v["session_id"]: v for v in visitor_rows}
+
+    messages_by_thread = {}
+    for row in message_rows:
+        messages_by_thread.setdefault(row["thread_id"], []).append(row)
 
     conversations_list = [
-        {"session_id": sid, "messages": msgs, "last_at": msgs[-1]["created_at"]}
-        for sid, msgs in sessions_map.items()
+        {
+            "thread_id": t["thread_id"],
+            "title": t["title"],
+            "last_at": t["last_at"],
+            "messages": messages_by_thread.get(t["thread_id"], []),
+            "visitor": visitors_by_session.get(t["session_id"]),
+        }
+        for t in thread_rows
     ]
-    conversations_list.sort(key=lambda c: c["last_at"], reverse=True)
+
+    stats = {
+        "visitor_count": len(visitor_rows),
+        "conversation_count": len(thread_rows),
+        "message_count": len(message_rows),
+    }
 
     return render_template(
-        "admin.html", conversations=conversations_list, bot_name=BOT_NAME
+        "admin.html",
+        conversations=conversations_list,
+        bot_name=BOT_NAME,
+        stats=stats,
     )
 
 
